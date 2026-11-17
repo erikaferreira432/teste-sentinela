@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Painel Médico - Hospital Sentinela</title>
+
+  <link rel="stylesheet" href="css/style.css">
+
+  <link rel="stylesheet" href="css/luxury.css">
+</head>
+
+<body>
+
+<div class="container">
+
+  <h2>🩺 Painel Médico</h2>
+
+  <div id="triagens"></div>
+
+  <hr>
+
+<hr>
+
+<!-- ÁREA QUE SERÁ IMPRESSA -->
+<div id="areaConsulta">
+
+  <h3>Consulta</h3>
+
+  <input
+    id="paciente"
+    placeholder="Paciente"
+    readonly
+  >
+
+  <input
+    id="diagnostico"
+    placeholder="Diagnóstico"
+  >
+
+  <select id="medicacao">
+    <option value="">Selecione a medicação</option>
+  </select>
+
+  <textarea
+    id="obs"
+    placeholder="Observações"
+  ></textarea>
+
+</div>
+<div class="botoesConsulta">
+
+  <button onclick="salvar()">
+    💾 Salvar Consulta
+  </button>
+
+  <button
+    onclick="baixarPDF()"
+    class="btn-pdf"
+  >
+    🖨️ Baixar PDF
+  </button>
+
+  <button
+    onclick="alta()"
+    class="btn-alta"
+  >
+    🏠 Dar Alta
+  </button>
+
+  <button
+    onclick="internar()"
+    class="btn-internacao"
+  >
+    🏥 Internar Paciente
+  </button>
+
+</div>
+
+<div id="areaInternacao" style="display: none;">
+
+  <h3>🏥 Internação do Paciente</h3>
+
+  <p>
+    <b>Paciente:</b>
+    <span id="internacaoPaciente"></span>
+  </p>
+
+  <label>Setor:</label>
+
+  <select id="setorInternacao">
+    <option value="">Selecione o setor</option>
+    <option value="Enfermaria">Enfermaria</option>
+    <option value="UTI">UTI</option>
+    <option value="Observação">Observação</option>
+    <option value="Pediatria">Pediatria</option>
+    <option value="Clínica Médica">Clínica Médica</option>
+    <option value="Cirurgia">Cirurgia</option>
+  </select>
+
+
+  <label>Quarto/Leito:</label>
+
+  <input
+    type="text"
+    id="quartoLeito"
+    placeholder="Ex: Quarto 12 - Leito 2"
+  >
+
+
+  <label>Motivo da internação:</label>
+
+  <textarea
+    id="motivoInternacao"
+    placeholder="Informe o motivo da internação..."
+  ></textarea>
+
+
+  <label>Observações:</label>
+
+  <textarea
+    id="obsInternacao"
+    placeholder="Observações da internação..."
+  ></textarea>
+
+
+  <button
+    onclick="confirmarInternacao()"
+    class="btn-internacao"
+  >
+    ✅ Confirmar Internação
+  </button>
+
+  <button onclick="fecharInternacao()">
+    ❌ Cancelar
+  </button>
+
+</div>
+  
+
+<div id="areaAlta" style="display: none;">
+
+  <h3>🏠 Alta do Paciente</h3>
+
+  <p>
+    <b>Paciente:</b>
+    <span id="altaPaciente"></span>
+  </p>
+
+  <label>Condição da alta:</label>
+  <select id="condicaoAlta">
+    <option value="">Selecione</option>
+    <option value="Alta médica">Alta médica</option>
+    <option value="Alta com acompanhamento">Alta com acompanhamento</option>
+    <option value="Alta com retorno">Alta com retorno</option>
+  </select>
+
+  <label>Orientações:</label>
+  <textarea
+    id="orientacoesAlta"
+    placeholder="Digite as orientações para o paciente..."
+  ></textarea>
+
+  <label>Retorno:</label>
+  <input
+    type="text"
+    id="retornoAlta"
+    placeholder="Ex: Retornar em 7 dias"
+  >
+
+  <label>Observações da alta:</label>
+  <textarea
+    id="obsAlta"
+    placeholder="Observações..."
+  ></textarea>
+
+  <button onclick="confirmarAlta()" class="btn-alta">
+    ✅ Confirmar Alta
+  </button>
+
+  <button onclick="fecharAlta()">
+    ❌ Cancelar
+  </button>
+
+</div>
+
+
+  
+</div>
+
+<script>
+
+function baixarPDF() {
+
+  const paciente =
+    document.getElementById("paciente").value;
+
+  if (!paciente) {
+    alert("Selecione um paciente primeiro.");
+    return;
+  }
+
+  window.print();
+}
+
+
+  
+let triagensCarregadas = [];
+
+function carregar() {
+
+  fetch("/triagens")
+
+    .then(r => r.json())
+
+    .then(data => {
+
+      triagensCarregadas = data;
+
+      const div =
+        document.getElementById("triagens");
+
+      div.innerHTML = "";
+
+      if (data.length === 0) {
+
+        div.innerHTML =
+          "<p>Nenhuma triagem aguardando atendimento.</p>";
+
+        return;
+      }
+
+      data.forEach((t, index) => {
+
+        div.innerHTML += `
+
+          <div class="card">
+
+            <h3>
+              👤 ${t.nome}
+            </h3>
+
+            <p>
+              <b>Sintoma:</b>
+              ${t.sintoma || "Não informado"}
+            </p>
+
+            <p>
+              <b>Temperatura:</b>
+              ${t.temperatura || "Não informada"}°C
+            </p>
+
+            <p>
+              <b>Classificação:</b>
+              <span class="${t.risco}">
+                ${t.risco}
+              </span>
+            </p>
+
+            <p>
+              <b>Alergia:</b>
+              ${t.alergia || "Nenhuma"}
+            </p>
+
+            <p>
+              <b>Observação:</b>
+              ${t.observacao || "Nenhuma"}
+            </p>
+
+            <button onclick="selecionar(${index})">
+              🩺 Atender Paciente
+            </button>
+
+          </div>
+
+        `;
+
+      });
+
+    });
+
+}
+
+function selecionar(index) {
+
+  const t =
+    triagensCarregadas[index];
+
+  document.getElementById("paciente").value =
+    t.nome;
+
+  document.getElementById("obs").value =
+    t.observacao || "";
+
+  if (t.alergia && t.alergia !== "Nenhuma") {
+
+    alert(
+      "⚠️ ATENÇÃO!\n\nPaciente possui alergia: " +
+      t.alergia
+    );
+
+  }
+
+}
+
+function carregarMedicacoes() {
+
+  fetch("/lista-medicacoes")
+
+    .then(r => r.json())
+
+    .then(data => {
+
+      const select =
+        document.getElementById("medicacao");
+
+      select.innerHTML = `
+        <option value="">
+          Selecione a medicação
+        </option>
+      `;
+
+      data.forEach(med => {
+
+        const option =
+          document.createElement("option");
+
+        option.value = med;
+
+        option.textContent = med;
+
+        select.appendChild(option);
+
+      });
+
+    });
+
+}
+
+function salvar() {
+
+  const paciente =
+    document.getElementById("paciente").value;
+
+  const diagnostico =
+    document.getElementById("diagnostico").value;
+
+  const medicacao =
+    document.getElementById("medicacao").value;
+
+  const obs =
+    document.getElementById("obs").value;
+
+  if (!paciente) {
+
+    alert(
+      "Selecione um paciente clicando em Atender."
+    );
+
+    return;
+
+  }
+
+  if (!medicacao) {
+
+    alert(
+      "Selecione uma medicação."
+    );
+
+    return;
+
+  }
+
+  fetch("/consulta", {
+
+    method: "POST",
+
+    headers: {
+      "Content-Type": "application/json"
+    },
+
+    body: JSON.stringify({
+
+      paciente,
+      diagnostico,
+      medicacao,
+      obs
+
+    })
+
+  })
+
+  .then(r => r.json())
+
+  .then(() => {
+
+    alert("Consulta salva com sucesso!");
+
+    document.getElementById("diagnostico").value = "";
+
+    document.getElementById("medicacao").value = "";
+
+    document.getElementById("obs").value = "";
+
+  });
+
+}
+
+carregar();
+
+carregarMedicacoes();
+
+  function internar() {
+
+  const paciente =
+    document.getElementById("paciente").value;
+
+  if (!paciente) {
+
+    alert(
+      "Selecione um paciente primeiro clicando em Atender."
+    );
+
+    return;
+  }
+
+  document.getElementById("internacaoPaciente").textContent =
+    paciente;
+
+  document.getElementById("areaInternacao").style.display =
+    "block";
+
+  document.getElementById("areaInternacao").scrollIntoView({
+    behavior: "smooth"
+  });
+
+}
+
+
+function fecharInternacao() {
+
+  document.getElementById("areaInternacao").style.display =
+    "none";
+
+}
+
+
+function confirmarInternacao() {
+
+  const paciente =
+    document.getElementById("paciente").value;
+
+  const setor =
+    document.getElementById("setorInternacao").value;
+
+  const quarto =
+    document.getElementById("quartoLeito").value;
+
+  const motivo =
+    document.getElementById("motivoInternacao").value;
+
+  const observacoes =
+    document.getElementById("obsInternacao").value;
+
+
+  if (!paciente) {
+
+    alert("Selecione um paciente.");
+
+    return;
+  }
+
+
+  if (!setor) {
+
+    alert("Selecione o setor da internação.");
+
+    return;
+  }
+
+
+  if (!quarto) {
+
+    alert("Informe o quarto ou leito.");
+
+    return;
+  }
+
+
+  if (!motivo) {
+
+    alert("Informe o motivo da internação.");
+
+    return;
+  }
+
+
+  fetch("/internacao", {
+
+    method: "POST",
+
+    headers: {
+      "Content-Type": "application/json"
+    },
+
+    body: JSON.stringify({
+
+      paciente: paciente,
+      setor: setor,
+      quarto: quarto,
+      motivo: motivo,
+      observacoes: observacoes
+
+    })
+
+  })
+
+  .then(r => r.json())
+
+  .then(data => {
+
+    alert("Paciente internado com sucesso!");
+
+    document.getElementById("setorInternacao").value = "";
+    document.getElementById("quartoLeito").value = "";
+    document.getElementById("motivoInternacao").value = "";
+    document.getElementById("obsInternacao").value = "";
+
+    document.getElementById("areaInternacao").style.display =
+      "none";
+
+    document.getElementById("paciente").value = "";
+
+    carregar();
+
+  })
+
+  .catch(error => {
+
+    console.error(error);
+
+    alert("Erro ao realizar a internação.");
+
+  });
+
+}
+
+  function alta() {
+
+  const paciente =
+    document.getElementById("paciente").value;
+
+  if (!paciente) {
+
+    alert(
+      "Selecione um paciente primeiro clicando em Atender."
+    );
+
+    return;
+  }
+
+  // Mostra o nome do paciente na área de alta
+  document.getElementById("altaPaciente").textContent =
+    paciente;
+
+  // Mostra a área de alta
+  document.getElementById("areaAlta").style.display =
+    "block";
+
+  // Rola a tela até a área de alta
+  document.getElementById("areaAlta").scrollIntoView({
+    behavior: "smooth"
+  });
+
+}
+
+
+function fecharAlta() {
+
+  document.getElementById("areaAlta").style.display =
+    "none";
+
+}
+
+
+function confirmarAlta() {
+
+  const paciente =
+    document.getElementById("paciente").value;
+
+  const condicao =
+    document.getElementById("condicaoAlta").value;
+
+  const orientacoes =
+    document.getElementById("orientacoesAlta").value;
+
+  const retorno =
+    document.getElementById("retornoAlta").value;
+
+  const observacoes =
+    document.getElementById("obsAlta").value;
+
+
+  if (!paciente) {
+
+    alert("Selecione um paciente primeiro.");
+
+    return;
+  }
+
+
+  if (!condicao) {
+
+    alert("Selecione a condição da alta.");
+
+    return;
+  }
+
+
+  if (!orientacoes) {
+
+    alert("Digite as orientações para o paciente.");
+
+    return;
+  }
+
+
+  fetch("/alta", {
+
+    method: "POST",
+
+    headers: {
+      "Content-Type": "application/json"
+    },
+
+    body: JSON.stringify({
+
+      paciente: paciente,
+      condicao: condicao,
+      orientacoes: orientacoes,
+      retorno: retorno,
+      observacoes: observacoes
+
+    })
+
+  })
+
+  .then(r => r.json())
+
+  .then(data => {
+
+    alert("Alta realizada com sucesso!");
+
+    // Limpa os campos
+    document.getElementById("condicaoAlta").value = "";
+    document.getElementById("orientacoesAlta").value = "";
+    document.getElementById("retornoAlta").value = "";
+    document.getElementById("obsAlta").value = "";
+
+    // Esconde a área
+    document.getElementById("areaAlta").style.display =
+      "none";
+
+    // Limpa o paciente selecionado
+    document.getElementById("paciente").value = "";
+
+    // Atualiza a lista de triagens
+    carregar();
+
+  })
+
+  .catch(error => {
+
+    console.error(error);
+
+    alert("Erro ao realizar a alta.");
+
+  });
+
+}
+
+
+
+</script>
+
+  
+
+</body>
+</html>
